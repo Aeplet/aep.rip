@@ -134,6 +134,9 @@
             return;
         }
 
+        const num = Number(numbers);
+        const firstDigit = numbers[0];
+
         let mainInfo = "";
         let boot1Info = "";
         let extraInfo = "";
@@ -145,8 +148,8 @@
             mainInfo = `Console ${value} seems to be an RVL-001 North American Wii console.`
             // LU5 mess
             // BEGINS
-            if ( (numbers[0] == 5 || numbers[0] == 6) && numbers >= 59000000) { 
-                if (numbers >= 66000000) { // boot1d range guessing again
+            if ((firstDigit === "5" || firstDigit === "6") && num >= 59000000) { 
+                if (num >= 66000000) { // boot1d range guessing again
                     boot1Info = "This console is guaranteed to have a patched boot1. It might be boot1d, but, boot1c is more likely."
                 }
                 else {
@@ -155,11 +158,11 @@
             }
             // LU58 is only potentially patched
             else {
-                if (numbers >= 58000000 && numbers < 59000000) {
+                if (num >= 58000000 && num < 59000000) {
                     boot1Info = "It is likely that this console has boot1c (patched), but, there is a chance this console has boot1b (unpatched)";
                 }
                 else {
-                    if (numbers >= 50000000 && numbers < 51000000) {
+                    if (num >= 50000000 && num < 51000000) {
                         boot1Info = "This console is guaranteed to have an unpatched boot1. It might be boot1a, but, most likely it is boot1b.";
                     }
                     else {
@@ -168,8 +171,8 @@
                 }
             }
             // LU3 begins here
-            if ( (numbers[0] == 3 || numbers[0] == 4) && numbers >= 35000000) { 
-                if (numbers >= 38000000) { // boot1d range guessing again
+            if ((firstDigit === "3" || firstDigit === "4") && num >= 35000000) {
+                if (num >= 38000000) { // boot1d range guessing again
                     boot1Info = "This console is guaranteed to have a patched boot1. It might be boot1d, but, boot1c is more likely."
                 }
                 else {
@@ -178,11 +181,11 @@
             }
             // Only high LU34 is only potentially patched
             else {
-                if (numbers >= 34800000 && numbers < 35000000) {
+                if (num >= 34800000 && num < 35000000) {
                     boot1Info = "It is likely that this console has boot1c (patched), but, there is a chance this console has boot1b (unpatched)";
                 }
                 else {
-                    if (numbers >= 30000000 && numbers < 31000000) {
+                    if (num >= 30000000 && num < 31000000) {
                         boot1Info = "This console is guaranteed to have an unpatched boot1. It might be boot1a, but, most likely it is boot1b.";
                     }
                     else {
@@ -191,8 +194,8 @@
                 }
             }
             // LU1 begins here
-            if ( (numbers[0] == 1) && numbers >= 11200000) { 
-                if (numbers >= 12000000) { // boot1d range guessing again
+            if ((firstDigit === "1") && num >= 11200000) { 
+                if (num >= 12000000) { // boot1d range guessing again
                     boot1Info = "This console is guaranteed to have a patched boot1. It might be boot1d, but, boot1c is more likely."
                 }
                 else {
@@ -201,11 +204,11 @@
             }
             // Only high LU10 or low LU110 is only potentially patched
             else {
-                if (numbers >= 11000000 && numbers < 11200000) {
+                if (num >= 11000000 && num < 11200000) {
                     boot1Info = "It is likely that this console has boot1c (patched), but, there is a chance this console has boot1b (unpatched).";
                 }
                 else {
-                    if (numbers >= 10000000 && numbers < 10500000) {
+                    if (num >= 10000000 && num < 10500000) {
                         boot1Info = "This console is guaranteed to have an unpatched boot1. It might be boot1a, but, most likely it is boot1b.";
                     }
                     else {
@@ -214,7 +217,7 @@
                 }
             }
             // TODO: Add more information for guaranteed to be patched consoles.
-            if ( (numbers[0] == 2 || numbers[0] == 7 || numbers[0] == 8 || numbers[0] == 9) ) {
+            if ((firstDigit === "2" || firstDigit === "7" || firstDigit == "8" || firstDigit == "9") && num >= 59000000) {
                 boot1Info = "This console is guaranteed to have a patched boot1. (boot1d)";
                 extraInfo = "This console is a non White Wii console."
             }
@@ -242,4 +245,5 @@
         result.className = "mt-4 text-center text-green-400";
     });
     </script>
+
 </body>
