@@ -1,0 +1,245 @@
+<!DOCTYPE HTML>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wii Serial Number Checker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+    <div class="bg-gray-800 text-white p-6 rounded-xl shadow-xl w-full max-w-md">
+        <h1 class="text-2xl font-bold mb-4 text-center">
+            Wii Serial Number Checker
+        </h1>
+
+        <input
+            id="serial"
+            type="text"
+            placeholder="Enter Wii serial (e.g. LU345580434)"
+            class="w-full p-3 rounded bg-gray-700 border border-gray-600 text-white
+                   focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+
+        <button
+            id="checkBtn"
+            class="mt-4 w-full bg-blue-600 hover:bg-blue-700 p-3 rounded font-semibold"
+        >
+            Check
+        </button>
+        <p id="result" class="mt-4 text-center text-gray-300"></p>
+    </div>
+    <script>
+        function computeCheckDigit(numbers) {
+            if (numbers.length !== 8) return null;
+            let evenSum = 0;
+            let oddSum = 0;
+
+            for (let i = 0; i < numbers.length; i++) {
+                const ch = numbers[i];
+                if (ch < '0' || ch > '9') {
+                    return null; // invalid character
+                }
+
+                const digit = Number(ch);
+                const pos = i + 1; // 1-based index
+
+                if (pos % 2 === 0) {
+                    // even position
+                    evenSum += digit;
+                } else {
+                    // odd position
+                    oddSum += digit;
+                }
+            }
+
+            const check = (10 - (((3 * evenSum) + oddSum) % 10)) % 10;
+            return check;
+        }
+
+        const input = document.getElementById("serial");
+        const button = document.getElementById("checkBtn");
+        const result = document.getElementById("result");
+
+        button.addEventListener("click", () => {
+        const value = input.value.trim().toUpperCase();
+
+        // Wii serial format:
+        // 2 (or 3 in non LU/LB regions), then 8 digits, then a checksum of the first 8 digits as the 9th digit.
+        // All in all every Wii serial number is 11-12 characters.
+        // The first letter of a serial is always L, H, or K
+
+        if (value === "") {
+            result.textContent = "Enter a serial number.";
+            result.className = "mt-4 text-center text-red-400";
+            return;
+        }
+        
+        if (value.length < 11) {
+            result.textContent = "This is too short to be a Wii serial number!";
+            result.className = "mt-4 text-center text-red-400";
+            return;
+        }
+
+        // this is probably bad but this is the best thing I can think of to seperate the letters and the numbers
+        let serialPrefixLetters = 0;
+        while (serialPrefixLetters < value.length && value[serialPrefixLetters] >= 'A' && value[serialPrefixLetters] <= 'Z') {
+            serialPrefixLetters++;
+        }
+
+        if (serialPrefixLetters > 3 || serialPrefixLetters < 2) {
+            result.textContent = "A Wii serial number always has a 2 or 3 letter prefix, never lower or higher!";
+            result.className = "mt-4 text-center text-red-400";
+            return;
+        }
+        
+        const serialPrefix = value.slice(0, serialPrefixLetters);
+        const numbers = value.slice(serialPrefixLetters, value.length - 1);
+        const checkDigit = value[value.length - 1];
+
+        if (numbers.length != 8 || checkDigit == null) {
+            result.textContent = "There are always 9 numbers in a Wii serial number!";
+            result.className = "mt-4 text-center text-red-400";
+            return;
+        }
+
+        if (numbers[0] == 0) {
+            result.textContent = "A Wii serial number can never start with 0!";
+            result.className = "mt-4 text-center text-red-400";
+            return;
+        }
+
+        const computedCheckDigit = computeCheckDigit(numbers);
+        if (checkDigit != computedCheckDigit) {
+            result.textContent = "This is not a valid Wii serial number! (check digit mismatch)";
+            result.className = "mt-4 text-center text-red-400";
+            return;
+        }
+
+        const firstLetter = serialPrefix[0];
+        if (!"LHK".includes(firstLetter)) {
+            result.textContent = "A Wii serial number only ever starts with L, K, or H!";
+            result.className = "mt-4 text-center text-red-400";
+            return;
+        }
+
+        if (firstLetter == "H" && serialPrefix[1] == "U") {
+            result.textContent = "Wii mini serials use HW, not HU (unlike RVL-001 and RVL-101 consoles) for NA consoles!";
+            result.className = "mt-4 text-center text-red-400";
+            return;
+        }
+
+        if (serialPrefix.length == 3 && !"FHM".includes(serialPrefix[2])) {
+            console.log(serialPrefix[2]);
+            result.textContent = "Serial numbers with 3 letter prefixes only start with F, H, or M! If this is a mistake, please reach out to me.";
+            result.className = "mt-4 text-center text-red-400";
+            return;
+        }
+
+        let mainInfo = "";
+        let boot1Info = "";
+        let extraInfo = "";
+
+        // If we actually got here, we can now get console data knowing that the serial isn't bs
+        // TODO: BOARD REVISIONS EVENTUALLY, AND ESTIMATED PRODUCTION DATE.
+        // TODO: NON NA SERIAL SUPPORT
+        if (serialPrefix[1] == "U" && firstLetter == "L") {  // NA consoles are checked here
+            mainInfo = `Console ${value} seems to be an RVL-001 North American Wii console.`
+            // LU5 mess
+            // BEGINS
+            if ( (numbers[0] == 5 || numbers[0] == 6) && numbers >= 59000000) { 
+                if (numbers >= 66000000) { // boot1d range guessing again
+                    boot1Info = "This console is guaranteed to have a patched boot1. It might be boot1d, but, boot1c is more likely."
+                }
+                else {
+                    boot1Info = "This console is guaranteed to have a patched boot1. (boot1c)"
+                }
+            }
+            // LU58 is only potentially patched
+            else {
+                if (numbers >= 58000000 && numbers < 59000000) {
+                    boot1Info = "It is likely that this console has boot1c (patched), but, there is a chance this console has boot1b (unpatched)";
+                }
+                else {
+                    if (numbers >= 50000000 && numbers < 51000000) {
+                        boot1Info = "This console is guaranteed to have an unpatched boot1. It might be boot1a, but, most likely it is boot1b.";
+                    }
+                    else {
+                        boot1Info = "This console is guaranteed to have an unpatched boot1. (boot1b)";
+                    }
+                }
+            }
+            // LU3 begins here
+            if ( (numbers[0] == 3 || numbers[0] == 4) && numbers >= 35000000) { 
+                if (numbers >= 38000000) { // boot1d range guessing again
+                    boot1Info = "This console is guaranteed to have a patched boot1. It might be boot1d, but, boot1c is more likely."
+                }
+                else {
+                    boot1Info = "This console is guaranteed to have a patched boot1. (boot1c)"
+                }
+            }
+            // Only high LU34 is only potentially patched
+            else {
+                if (numbers >= 34800000 && numbers < 35000000) {
+                    boot1Info = "It is likely that this console has boot1c (patched), but, there is a chance this console has boot1b (unpatched)";
+                }
+                else {
+                    if (numbers >= 30000000 && numbers < 31000000) {
+                        boot1Info = "This console is guaranteed to have an unpatched boot1. It might be boot1a, but, most likely it is boot1b.";
+                    }
+                    else {
+                        boot1Info = "This console is guaranteed to have an unpatched boot1. (boot1b)";
+                    }
+                }
+            }
+            // LU1 begins here
+            if ( (numbers[0] == 1) && numbers >= 11200000) { 
+                if (numbers >= 12000000) { // boot1d range guessing again
+                    boot1Info = "This console is guaranteed to have a patched boot1. It might be boot1d, but, boot1c is more likely."
+                }
+                else {
+                    boot1Info = "This console is guaranteed to have a patched boot1. (boot1c)"
+                }
+            }
+            // Only high LU10 or low LU110 is only potentially patched
+            else {
+                if (numbers >= 11000000 && numbers < 11200000) {
+                    boot1Info = "It is likely that this console has boot1c (patched), but, there is a chance this console has boot1b (unpatched).";
+                }
+                else {
+                    if (numbers >= 10000000 && numbers < 10500000) {
+                        boot1Info = "This console is guaranteed to have an unpatched boot1. It might be boot1a, but, most likely it is boot1b.";
+                    }
+                    else {
+                        boot1Info = "This console is guaranteed to have an unpatched boot1. (boot1b)";
+                    }
+                }
+            }
+            // TODO: Add more information for guaranteed to be patched consoles.
+            if ( (numbers[0] == 2 || numbers[0] == 7 || numbers[0] == 8 || numbers[0] == 9) ) {
+                boot1Info = "This console is guaranteed to have a patched boot1. (boot1d)";
+                extraInfo = "This console is a non White Wii console."
+            }
+        }
+        else if (firstLetter == "K") {
+            mainInfo = "This console seems to be a Wii family edition.";
+            boot1Info = "This console is guaranteed to have a patched boot1. (boot1d)";
+            extraInfo = "Not much information is known about RVL-101s regarding this information. If you have a decent amount of information, feel free to reach out to me.";
+        }
+        else if (firstLetter == "H") {
+            mainInfo = "This console seems to be a Wii mini.";
+            boot1Info = "This console is guaranteed to have a patched boot1. (boot1d)";
+            extraInfo = "Not much information is known about RVL-201 (Wii minis) regarding the relevant information here. If you have a decent amount of information, feel free to reach out to me.";
+        }
+        else {
+            mainInfo = "Non North-American Wiis data is not ready to be published here just yet. If you have data to share, please reach out to me.";
+        }
+
+        // Output everything
+        result.textContent = [
+            mainInfo,
+            boot1Info,
+            extraInfo
+        ].filter(x => x.length > 0).join("\n");
+        result.className = "mt-4 text-center text-green-400";
+    });
+    </script>
+</body>
